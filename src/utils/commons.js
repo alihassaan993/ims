@@ -1,0 +1,16 @@
+export const apiKey="bvrUmaA2hPP2pQa4CTnpOT20hbnKqBZkEI49Xf7dzwVRA8ecJdkVxyT5n2DdhHhH";
+export const companyID=1;
+export const INVENTORY_ACCOUNT_ID=14;
+export const COMPANY_ACCOUNT_ID=15;
+export const SALES_REVENUE_ACCOUNT_ID=16;
+export const addProductURL='https://active-jennet-90.hasura.app/api/rest/addproduct';
+export const getProductsURL="https://active-jennet-90.hasura.app/api/rest/fetchproducts?companyid="+companyID;
+export const getSuppliersURL="https://active-jennet-90.hasura.app/api/rest/fetchsuppliers?companyid="+companyID;
+export const addSupplierURL='https://active-jennet-90.hasura.app/api/rest/addsupplier';
+export const addInventoryURL='https://active-jennet-90.hasura.app/api/rest/addinventory';
+export const getInventoryURL="https://active-jennet-90.hasura.app/api/rest/fetchinventorytransactions";
+export const getProductInventoryURL="https://active-jennet-90.hasura.app/api/rest/fetchproductinvoices";
+export const getSupplierInventoryURL="https://active-jennet-90.hasura.app/api/rest/fetchsupplierinventory";
+export const graphql="https://active-jennet-90.hasura.app/v1/graphql";
+export const getInvoiceURL="https://active-jennet-90.hasura.app/api/rest/fetchinvoice";
+export const updateInvoiceURL="https://active-jennet-90.hasura.app/api/rest/updateinvoice";

@@ -1,0 +1,35 @@
+/* styles.css */
+.gridTable {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4 equal-width columns */
+    gap: 10px;
+    margin-top: 20px;
+}
+
+.gridHeader, .gridRow {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr); /* 4 columns for header and rows */
+    font-weight: bold;
+    padding-bottom: 10px;
+}
+
+/* Media Queries */
+@media (max-width: 768px) {
+    .gridTable {
+        grid-template-columns: repeat(2, 1fr); /* 2 columns on smaller screens */
+    }
+
+    .gridHeader, .gridRow {
+        grid-template-columns: repeat(2, 1fr); /* 2 columns for header and rows */
+    }
+}
+
+@media (max-width: 480px) {
+    .gridTable {
+        grid-template-columns: 1fr; /* 1 column on very small screens */
+    }
+
+    .gridHeader, .gridRow {
+        grid-template-columns: 1fr; /* 1 column for header and rows */
+    }
+}
