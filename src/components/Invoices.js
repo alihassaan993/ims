@@ -64,6 +64,7 @@ export default function Invoices() {
         fetchInvoices();
     }, [refresh]);
 
+
     if (loading) return <div>Loading Invoices...</div>;
     if (error) return <div>Error: {error}</div>;
 

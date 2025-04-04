@@ -87,6 +87,14 @@ export const styles = ({
         color: 'white',
         fontSize: '14px',
         fontWeight: 'bold',
+    },gridSuppHeader: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 2fr 1fr 1fr 1fr 2fr',
+        padding: '15px 20px',
+        backgroundColor: '#3c44b1',
+        color: 'white',
+        fontSize: '14px',
+        fontWeight: 'bold',
     },
     gridHeaderItem: {
         textAlign: 'left',
@@ -95,6 +103,12 @@ export const styles = ({
     gridInvRow: {
         display: 'grid',
         gridTemplateColumns: '1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr 1fr',
+        padding: '15px 20px',
+        borderBottom: '1px solid #f0f0f0',
+        fontSize: '14px',
+    },gridSuppRow: {
+        display: 'grid',
+        gridTemplateColumns: '1fr 2fr 1fr 1fr 1fr 2fr',
         padding: '15px 20px',
         borderBottom: '1px solid #f0f0f0',
         fontSize: '14px',

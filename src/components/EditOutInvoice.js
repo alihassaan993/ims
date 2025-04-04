@@ -2,10 +2,10 @@ import React, { useState, useEffect } from "react";
 import {TextField, MenuItem, Button, Box, Grid, CircularProgress, IconButton} from "@mui/material";
 import {  Delete } from "@mui/icons-material";
 import { Add, Remove } from "@mui/icons-material";
-import { graphql, apiKey, companyID, getProductsURL, getInvoiceURL } from "../utils/commons";
+import {graphql, apiKey, companyID, getProductsURL, getInvoiceURL, SALES_REVENUE_ACCOUNT_ID} from "../utils/commons";
 
 export default function EditOutInvoice(props) {
-    const {invoiceId,setEOpen} = props;
+    const {invoiceId,setEOpen,setRefresh} = props;
     const [formData, setFormData] = useState({
         truckNumber: "",
         modifyDate: "",
@@ -13,7 +13,8 @@ export default function EditOutInvoice(props) {
         products: [],
         accountId:"",
         accountBalance:"",
-        oldTotalAmount:0
+        oldTotalAmount:0,
+        transactionReference: ""
     });
     const [oldTotalAmount, setOldTotalAmount] = useState(0);
     const [products, setProducts] = useState([]);
@@ -48,11 +49,13 @@ export default function EditOutInvoice(props) {
                         totalAmount: item.total_price,
                     })),
                     accountId: invoice.customer.accounts[0].account_id,
-                    accountBalance: invoice.customer.accounts[0].balance
+                    accountBalance: invoice.customer.accounts[0].balance,
+                    transactionReference: invoice.account_transactions[0].transaction_reference
                 });
 
                 setLoadingInvoice(false);
             } catch (error) {
+                alert(error.message);
                 setError(error.message);
             }
         };
@@ -174,7 +177,9 @@ export default function EditOutInvoice(props) {
                       $companyId: Int!,
                       $invoiceItems: [imsdb_invoice_item_insert_input!]!,
                       $updatedBalance: Int!,
-                      $accountId:Int!
+                      $accountId:Int!,
+                      $userId: Int!,
+                      $log:String!,
                     ) {
                       update_imsdb_invoice_by_pk(
                         pk_columns: { invoice_id: $invoiceId },
@@ -231,7 +236,15 @@ export default function EditOutInvoice(props) {
                         _set: { balance: $updatedBalance }
                       ) {
                         account_id
-                      }                      
+                      }            
+                      
+                                                    
+                     insert_imsdb_user_log(objects: {user_id: $userId, log: $log, log_date: $invoiceDate,action:"Deleted Sale Invoice"}) {
+                        affected_rows
+                        returning {
+                          user_log_id
+                        }
+                      }          
                       
                     }`,
                     variables: {
@@ -250,7 +263,9 @@ export default function EditOutInvoice(props) {
                             total_price: Number(item.totalAmount),
                         })),
                         updatedBalance:updatedAmount,
-                        accountId:accountId
+                        accountId:accountId,
+                        userId:1,
+                        log:JSON.stringify(formData),
                     }
                 })
             });
@@ -275,16 +290,20 @@ export default function EditOutInvoice(props) {
 
 
             const totalAmount = formData.products.reduce((sum, item) => sum + Number(item.totalAmount), 0);
-            let updatedBalance=formData.accountBalance-totalAmount;
+            console.log("Deleting transaction reference " + formData.transactionReference);
 
             const response = await fetch(graphql, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "x-hasura-admin-secret": apiKey },
                 body: JSON.stringify({
                     query: `mutation deleteInvoice(
-                              $invoiceId: Int!,
+                              $invoiceId: Int!
+                              $transactionReference: String!,
                               $accountId: Int!,
-                              $updatedBalance: Int!
+                              $totalAmount: Int!,
+                              $salesAccountId: Int!,
+                              $userId: Int!,
+                              $log:String!
                             ) {
                               # Delete invoice items first (assuming foreign key constraint)
                               delete_imsdb_invoice_item(where: { invoice_id: { _eq: $invoiceId } }) {
@@ -293,9 +312,18 @@ export default function EditOutInvoice(props) {
                             
                             
                               # Update the account balance for the customer
-                              update_imsdb_account_by_pk(
+                              update_customer_account:update_imsdb_account_by_pk(
                                 pk_columns: { account_id: $accountId },
-                                _set: { balance: $updatedBalance }
+                                _inc: { balance: $totalAmount }
+                              ) {
+                                account_id
+                                balance
+                              }
+                            
+                              # Update the account balance for the customer
+                              update_sales_account:update_imsdb_account_by_pk(
+                                pk_columns: { account_id: $salesAccountId },
+                                _inc: { balance: $totalAmount }
                               ) {
                                 account_id
                                 balance
@@ -304,7 +332,7 @@ export default function EditOutInvoice(props) {
                               # Delete the related account transaction
                               delete_imsdb_account_transaction(
                                 where: {
-                                  invoice_id: { _eq: $invoiceId }
+                                  transaction_reference: { _eq: $transactionReference },
                                 }
                               ) {
                                 affected_rows
@@ -316,11 +344,22 @@ export default function EditOutInvoice(props) {
                                 invoice_id
                                 invoice_number
                               }
+                              
+                           insert_imsdb_user_log(objects: {user_id: $userId, log: $log, log_date: "now()",action:"Deleted Sale Invoice"}) {
+                            affected_rows
+                            returning {
+                              user_log_id
+                            }
+                            }  
                             }`,
                     variables: {
                         invoiceId,
+                        transactionReference:formData.transactionReference,
                         accountId:formData.accountId,
-                        updatedBalance: updatedBalance
+                        salesAccountId: SALES_REVENUE_ACCOUNT_ID,
+                        totalAmount: -1*formData.oldTotalAmount,
+                        userId:localStorage.getItem("userId"),
+                        log:JSON.stringify(formData),
                     }
                 })
             });
@@ -332,6 +371,7 @@ export default function EditOutInvoice(props) {
             }
             alert("Invoice Deleted Successfully!");
             setEOpen(false);
+            setRefresh(Math.random());
         } catch (error) {
             console.error("Network error:", error);
         }
@@ -382,11 +422,8 @@ export default function EditOutInvoice(props) {
                     </Grid>
                 ))}
                 <Grid container item xs={12} spacing={50}>
-                    <Grid item xs={6}>
-                        <Button variant="contained" color="primary" type="submit">Update Invoice</Button>
-                    </Grid>
 
-                    <Grid item xs={6}>
+                    <Grid item xs={12}>
                         <Button variant="contained" color="secondary" startIcon={<Delete />} onClick={handleDelete}>
                             Delete Invoice
                         </Button>

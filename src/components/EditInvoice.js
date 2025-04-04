@@ -9,7 +9,7 @@ import {
     getProductsURL,
     getSuppliersURL,
     getInvoiceURL,
-    INVENTORY_ACCOUNT_ID
+    INVENTORY_ACCOUNT_ID,
 } from "../utils/commons";
 
 export default function EditInvoice(props) {
@@ -173,8 +173,8 @@ export default function EditInvoice(props) {
 
             //////////////////////
 
-            const transactionReference = `TXN-${Date.now()}`;
 
+            const transactionReference = `TXN-${Date.now()}`;
             const response = await fetch(graphql, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "x-hasura-admin-secret": apiKey },
@@ -314,7 +314,6 @@ export default function EditInvoice(props) {
 
             const totalAmount = formData.products.reduce((sum, item) => sum + Number(item.totalAmount), 0);
             let updatedBalance=formData.accountBalance-totalAmount;
-
             const response = await fetch(graphql, {
                 method: "POST",
                 headers: { "Content-Type": "application/json", "x-hasura-admin-secret": apiKey },
@@ -322,7 +321,11 @@ export default function EditInvoice(props) {
                     query: `mutation deleteInvoice(
                               $invoiceId: Int!,
                               $accountId: Int!,
-                              $updatedBalance: Int!
+                              $updatedBalance: Int!,
+                              $oldBalance: Int!,
+                              $inventoryAccountId: Int!,
+                              $log:String!,
+                              $userId: Int!,
                             ) {
                               # Delete invoice items first (assuming foreign key constraint)
                               delete_imsdb_invoice_item(where: { invoice_id: { _eq: $invoiceId } }) {
@@ -330,14 +333,24 @@ export default function EditInvoice(props) {
                               }
                             
                             
-                              # Update the account balance for the supplier
-                              update_imsdb_account_by_pk(
+                              # Update the supplier account balance for the supplier
+                              update_supplier_balance:update_imsdb_account_by_pk(
                                 pk_columns: { account_id: $accountId },
                                 _set: { balance: $updatedBalance }
                               ) {
                                 account_id
                                 balance
                               }
+                              
+                              # Update the inventory account balance for the supplier
+                              update_inventory_balance:update_imsdb_account_by_pk(
+                                pk_columns: { account_id: $inventoryAccountId },
+                                _inc: { balance: $oldBalance }
+                              ) {
+                                account_id
+                                balance
+                              }
+                              
                             
                               # Delete the related account transaction
                               delete_imsdb_account_transaction(
@@ -354,11 +367,22 @@ export default function EditInvoice(props) {
                                 invoice_id
                                 invoice_number
                               }
+                              
+                            insert_imsdb_user_log(objects: {user_id: $userId, log: $log, log_date: "now()",action:"Deleted Purchase Invoice"}) {
+                            affected_rows
+                                returning {
+                                  user_log_id
+                                }
+                             } 
                             }`,
                     variables: {
                         invoiceId,
                         accountId:formData.accountId,
-                        updatedBalance: updatedBalance
+                        updatedBalance: updatedBalance,
+                        oldBalance:-1*formData.oldTotalAmount,
+                        inventoryAccountId:INVENTORY_ACCOUNT_ID,
+                        log:JSON.stringify(formData),
+                        userId:localStorage.getItem("userId"),
                     }
                 })
             });
@@ -420,10 +444,6 @@ export default function EditInvoice(props) {
                     </Grid>
                 ))}
                 <Grid container item xs={12} spacing={50}>
-                    <Grid item xs={6}>
-                        <Button variant="contained" color="primary" type="submit">Update Invoice</Button>
-                    </Grid>
-
                     <Grid item xs={6}>
                         <Button variant="contained" color="secondary" startIcon={<Delete />} onClick={handleDelete}>
                             Delete Invoice

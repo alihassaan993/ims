@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { TextField, Button, Box } from '@mui/material';
-import {apiKey, companyID, addProductURL, graphql} from '../utils/commons';
+import {apiKey, graphql, COMPANY_ACCOUNT_ID} from '../utils/commons';
 
 
 export default function Supplier(props) {
-    const {supplierId,balance} = props;
+    const {supplierId,setPOpen,setRefresh} = props;
     const [amount, setAmount] = useState('');
     const [transactionDate, setTransactionDate] = useState(new Date().toISOString().split("T")[0]);
     const [narration, setNarration] = useState('');
@@ -52,6 +52,7 @@ export default function Supplier(props) {
             let accountId = account.account_id;
             let updatedBalance = account.balance - parseFloat(amount); // Deduct payment
 
+            const transactionReference = `TXN-${Date.now()}`;
             // Execute GraphQL Mutation for Transaction and Balance Update
             const response = await fetch(graphql, {
                 method: 'POST',
@@ -66,11 +67,15 @@ export default function Supplier(props) {
                     $transactionDate: date!,
                     $updatedBalance: Int!,
                     $narration: String!,
+                    $transactionReference:String!,
+                    $companyAccountId:Int!,
+                    $negativeAmount:Int!
                 ) {
-                    insert_imsdb_account_transaction(
+                    insert_supplier_transaction:insert_imsdb_account_transaction(
                         objects: {
                             account_id: $accountId,
                             amount: $amount,
+                            transaction_reference:$transactionReference,
                             transaction_date: $transactionDate,
                             transaction_type: "DEBIT",
                             narration: $narration
@@ -78,26 +83,52 @@ export default function Supplier(props) {
                     ) {
                         affected_rows
                     }
+                    insert_company_transaction:insert_imsdb_account_transaction(
+                        objects: {
+                            account_id: $companyAccountId,
+                            amount: $amount,
+                            transaction_reference:$transactionReference,
+                            transaction_date: $transactionDate,
+                            transaction_type: "CREDIT",
+                            narration: "Amount paid to Supplier" 
+                        }
+                    ) {
+                        affected_rows
+                    }
 
-                    update_imsdb_account_by_pk(
+                   update_supplier_balance: update_imsdb_account_by_pk(
                         pk_columns: { account_id: $accountId },
                         _set: { balance: $updatedBalance }
                     ) {
                         balance
                     }
+                    
+                   update_company_balance: update_imsdb_account_by_pk(
+                        pk_columns: { account_id: $companyAccountId },
+                        _inc: { balance: $negativeAmount }
+                    ) {
+                        balance
+                    }
+                    
                 }`,
                     variables: {
                         accountId,
-                        amount: parseFloat(amount),  // Ensure numeric value
+                        amount: amount,  // Ensure numeric value
                         transactionDate,
                         updatedBalance,
-                        narration
+                        narration,
+                        transactionReference,
+                        companyAccountId:COMPANY_ACCOUNT_ID,
+                        negativeAmount:-1*amount
                     },
                 }),
             });
 
             const data = await response.json();
             if (response.ok && data.data) {
+                alert("Payment has been added successfully.");
+                setPOpen(false);
+                setRefresh(Math.random());
                 console.log('Payment added successfully:', data);
                 setAmount('');
                 setTransactionDate('');

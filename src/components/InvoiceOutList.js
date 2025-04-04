@@ -87,7 +87,7 @@ export default function InvoiceOutList() {
                 <InvoiceOutForm setRefresh={setRefresh} setOpen={setOpen} />
             </Popup>
             <Popup openPopup={eopen} setEPopup={setEOpen} setOpenPopup={setEOpen} title="Edit Invoice">
-                <EditOutInvoice invoiceId={invoiceId} setEOpen={setEOpen} />
+                <EditOutInvoice invoiceId={invoiceId} setEOpen={setEOpen} setRefresh={setRefresh} />
             </Popup>
 
             <div style={styles.gridTable}>

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { TextField, MenuItem, Button, Box, Grid, IconButton } from "@mui/material";
 import { Add, Remove } from "@mui/icons-material";
-import { graphql, apiKey, companyID, getProductsURL, getSuppliersURL } from "../utils/commons";
+import { graphql, apiKey, companyID, getProductsURL, transactionReference,SALES_REVENUE_ACCOUNT_ID } from "../utils/commons";
 
 export default function InvoiceOutForm(props){
     const {setRefresh, setOpen} = props;
@@ -110,7 +110,7 @@ export default function InvoiceOutForm(props){
             let accountData = await accountResponse.json();
             let accountId = accountData.data.imsdb_account[0]?.account_id;
             //////////////////////
-
+            const transactionReference = `TXN-${Date.now()}`;
             let supplierBalance = accountData.data.imsdb_account[0]?.balance + totalAmount;
             if (!accountId) {
                 alert("No account found for this supplier.");
@@ -134,7 +134,11 @@ export default function InvoiceOutForm(props){
                               $status: String!,
                               $invoiceItems: [imsdb_invoice_item_insert_input!]!,
                               $accountId: Int!,
-                              $supplierBalance: Int!
+                              $supplierBalance: Int!,
+                              $transactionReference:String!,
+                              $salesAccountId: Int!,
+                              $userId: Int!,
+                              $log:String!
                             ) {
                               # Insert the invoice along with invoice items and account transaction
                               insert_imsdb_invoice_one(
@@ -151,9 +155,17 @@ export default function InvoiceOutForm(props){
                                     data: [
                                       {
                                         account_id: $accountId,
+                                        transaction_type: "DEBIT",
+                                        amount: $totalAmount,
+                                        transaction_date: $invoiceDate,
+                                        transaction_reference:$transactionReference
+                                      },
+                                      {
+                                        account_id: $salesAccountId,
                                         transaction_type: "CREDIT",
                                         amount: $totalAmount,
-                                        transaction_date: $invoiceDate
+                                        transaction_date: $invoiceDate,
+                                        transaction_reference:$transactionReference                                     
                                       }
                                     ]
                                   }
@@ -174,12 +186,28 @@ export default function InvoiceOutForm(props){
                               }
                             
                               # Update the account balance for the supplier
-                              update_imsdb_account_by_pk(
+                              update_customer_account:update_imsdb_account_by_pk(
                                 pk_columns: { account_id: $accountId },
                                 _set: { balance: $supplierBalance }
                               ) {
                                 account_id
                               }
+                              
+                             # Update the sales account balance
+                              update_sales_account:update_imsdb_account_by_pk(
+                                pk_columns: { account_id: $salesAccountId },
+                                _inc: { balance: $totalAmount }
+                              ) {
+                                account_id
+                              }
+                              
+                           insert_imsdb_user_log(objects: {user_id: $userId, log: $log, log_date: $invoiceDate,action:"Sell Products"}) {
+                                affected_rows
+                                returning {
+                                  user_log_id
+                                }
+                              }
+                              
                             }`,
                     variables: {
                         customerId: formData.customerId,
@@ -197,6 +225,10 @@ export default function InvoiceOutForm(props){
                         })),
                         accountId: accountId,
                         supplierBalance: supplierBalance,
+                        transactionReference:transactionReference,
+                        salesAccountId:SALES_REVENUE_ACCOUNT_ID,
+                        userId:localStorage.getItem("userId"),
+                        log:JSON.stringify(formData),
                     }
                 })
             });

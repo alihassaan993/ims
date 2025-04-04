@@ -51,11 +51,11 @@ export default function ProductPriceChart({ productId }) {
     }, [productId]);
 
     return (
+        <>
         <div style={{ width: "100%", maxWidth: "1000px", margin: "0 auto" }}>
             {error ? <p>Error: {error}</p> : null}
-            <ResponsiveContainer width="100%" height={400}>
-                <LineChart width={730} height={250} data={chartData}
-                           margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+            <ResponsiveContainer width="100%" height={200}>
+                <LineChart data={chartData} spacing={20}>
                     <CartesianGrid strokeDasharray="3 3" />
                     <XAxis
                         dataKey="date"
@@ -63,6 +63,7 @@ export default function ProductPriceChart({ productId }) {
                         angle={-45}
                         fontSize={10}
                         textAnchor="end"
+                        padding="gap"
                     />
                     <YAxis
                         fontSize={10}
@@ -75,5 +76,6 @@ export default function ProductPriceChart({ productId }) {
                 </LineChart>
             </ResponsiveContainer>
         </div>
+        </>
     );
 };

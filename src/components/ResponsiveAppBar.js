@@ -17,7 +17,7 @@ import Supplier from './Supplier'; // Ensure to import the correct component
 import Invoices from './Invoices';
 import InvoiceOutList from './InvoiceOutList';
 import Customer from './Customer';
-import { Dashboard, LocalMall, ImportExport, ExitToApp, AccountBalance } from "@mui/icons-material";
+import {useEffect} from "react";
 
 
 
@@ -27,13 +27,14 @@ const pages = [
     { page: 'Supplier', component: <Supplier /> },
     { page: 'Purchase', component: <Invoices /> },
     { page: 'Sell', component: <InvoiceOutList /> },
-    { page: 'Customer', component: <Customer /> }
+    { page: 'Customer', component: <Customer /> },
+    { page: 'Expenses', component: <Customer /> }
 ];
 
-const settings = ['Profile', 'Account', 'Dashboard', 'Logout'];
+const settings = ['Logout'];
 
 function ResponsiveAppBar(props) {
-    const { setMenuItem } = props;
+    const { setMenuItem,setUser } = props;
     const [anchorElNav, setAnchorElNav] = React.useState(null);
     const [anchorElUser, setAnchorElUser] = React.useState(null);
 
@@ -51,11 +52,16 @@ function ResponsiveAppBar(props) {
     const handleCloseNavMenu = (page) => {
         setMenuItem(page.component); // Set the menu component on page click
         setAnchorElNav(null); // Close the menu
+
     };
 
     // Closing the user menu
-    const handleCloseUserMenu = () => {
+    const handleCloseUserMenu = (setting) => {
         setAnchorElUser(null);
+        if (setting === 'Logout') {
+            localStorage.removeItem("user");
+            setUser(null);
+        }
     };
 
     return (
@@ -156,6 +162,7 @@ function ResponsiveAppBar(props) {
                     <Box sx={{ flexGrow: 0 }}>
                         <Tooltip title="Open settings">
                             <IconButton onClick={handleOpenUserMenu} sx={{ p: 0 }}>
+                                <Typography sx={{ my: 2, color: 'white', display: 'block' }}><span>Welcome {localStorage.getItem("fullName")}</span> </Typography> &nbsp;
                                 <Avatar alt="User" src="/static/images/avatar/2.jpg" />
                             </IconButton>
                         </Tooltip>
@@ -176,7 +183,7 @@ function ResponsiveAppBar(props) {
                             onClose={handleCloseUserMenu}
                         >
                             {settings.map((setting) => (
-                                <MenuItem key={setting} onClick={handleCloseUserMenu}>
+                                <MenuItem key={setting} onClick={() => handleCloseUserMenu(setting)}>
                                     <Typography sx={{ textAlign: 'center' }}>{setting}</Typography>
                                 </MenuItem>
                             ))}

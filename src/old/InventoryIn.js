@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { apiKey, companyID, getInventoryURL } from "../utils/commons";
 import { styles } from "../styles/styles";
-import { Popup } from "./Popup";
+import { Popup } from "../components/Popup";
 import InventoryInForm from "./InventoryInForm";
 import { MenuItem, TextField } from "@mui/material";
 

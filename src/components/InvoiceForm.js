@@ -125,8 +125,8 @@ export default function InvoiceForm(props){
                 alert("No account found for this supplier.");
                 return;
             }
-            const transactionReference = `TXN-${Date.now()}`;
 
+            const transactionReference = `TXN-${Date.now()}`;
             const response = await fetch(graphql, {
                 method: "POST",
                 headers: {
@@ -146,7 +146,9 @@ export default function InvoiceForm(props){
                               $supplierBalance: Int!,
                               $transactionReference:String!,
                               $inventoryAccountId:Int!,
-                              $inventoryBalance:Int!
+                              $inventoryBalance:Int!,
+                              $log:String!,
+                              $userId: Int!,
                             ) {
                               # Insert the invoice along with invoice items and account transaction
                               insert_imsdb_invoice_one(
@@ -209,6 +211,13 @@ export default function InvoiceForm(props){
                                 balance
                               }
                               
+                             insert_imsdb_user_log(objects: {user_id: $userId, log: $log, log_date: $invoiceDate,action:"Purchase Product"}) {
+                                affected_rows
+                                returning {
+                                  user_log_id
+                                }
+                              }
+                              
                             }`,
                     variables: {
                         supplierId: formData.supplierId,
@@ -227,7 +236,9 @@ export default function InvoiceForm(props){
                         supplierBalance: supplierBalance,
                         transactionReference:transactionReference,
                         inventoryAccountId:INVENTORY_ACCOUNT_ID,
-                        inventoryBalance:inventoryBalance
+                        inventoryBalance:inventoryBalance,
+                        log:JSON.stringify(formData),
+                        userId:localStorage.getItem("userId"),
                     }
                 })
             });

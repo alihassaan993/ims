@@ -1,7 +1,7 @@
 {
   "name": "ims",
   "version": "0..0",
-  "homepage": "https://github.com/alihassaan993/ims",
+  "homepage": "https://alihassaan993.github.io/ims/",
   "private": true,
   "dependencies": {
     "@emotion/react": "^11.14.0",
